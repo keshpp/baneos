@@ -105,9 +105,17 @@
             text-align: right;
             font-size: 14px;
             color: #333;
+            position: relative;
         }
         .signature p {
             margin: 0;
+        }
+        .signature img {
+            position: absolute;
+            right: 0;
+            bottom: 10px;
+            max-width: 150px;
+            opacity: 0.8;
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -115,7 +123,7 @@
 <body>
     <div class="container">
         <!-- Company name at the top left -->
-        <div class="company-name">BANEO'S SNACKS PVT.LTD</div>
+        <div class="company-name">Your Company Name</div>
 
         <h1>Invoice Generator</h1>
         <form id="invoiceForm">
@@ -224,7 +232,8 @@
                 </table>
                 <div class="signature">
                     <p>Authorized Signature</p>
-                    <p><strong>BANEO'S SNACKS PVT.LTD</strong></p>
+                    <img src="signature.png" alt="Signature">
+                    <p><strong>Your Company Name</strong></p>
                 </div>
             `;
 
@@ -248,7 +257,8 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             const invoiceContent = document.getElementById('invoiceOutput').innerHTML;
-            // Adding custom CSS for the PDF layout
+
+             // Adding custom CSS for the PDF layout
             const css = `
                 <style>
                     table { width: 100%; border-collapse: collapse; }
