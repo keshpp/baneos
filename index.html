@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .company-name {
+            font-weight: bold;
+            color: blue;
+            font-size: 24px;
+            margin-bottom: 2rem;
+            margin-left: 4rem;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 15px;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .generate-btn {
+            background-color: #4CAF50;
+        }
+        .generate-btn:hover {
+            background-color: #45a049;
+        }
+        .print-btn, .pdf-btn {
+            background-color: #2196F3;
+            margin-right: 10px;
+        }
+        .print-btn:hover, .pdf-btn:hover {
+            background-color: #0b7dda;
+        }
+        .invoice {
+            margin-top: 20px;
+        }
+        .invoice h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .invoice table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .invoice th, .invoice td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .invoice th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .invoice td {
+            background-color: #ffffff;
+        }
+        .invoice p {
+            margin: 0;
+            padding: 8px 0;
+            font-size: 14px;
+        }
+        .invoice p strong {
+            font-weight: bold;
+        }
+        .signature {
+            margin-top: 20px;
+            text-align: right;
+            font-size: 14px;
+            color: #333;
+        }
+        .signature p {
+            margin: 0;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Company name at the top left -->
+        <div class="company-name">BANEO'S SNACKS PVT.LTD</div>
+
+        <h1>Invoice Generator</h1>
+        <form id="invoiceForm">
+            <div class="form-group">
+                <label for="dealerName">Dealer Name:</label>
+                <input type="text" id="dealerName" required>
+            </div>
+            <div class="form-group">
+                <label for="product">Product:</label>
+                <select id="product" multiple>
+                    <option value="Product1" data-price="20">BANEO'S CHIPS 70G - ₹20</option>
+                    <option value="Product2" data-price="50">BANEO'S CHIPS 180G - ₹50</option>
+                    <option value="Product3" data-price="100">BANEO'S CHIPS 400G - ₹100</option>
+                </select>
+            </div>
+            <div id="quantitiesContainer"></div> <!-- This will hold quantity inputs dynamically -->
+            <button type="button" class="generate-btn" onclick="generateInvoice()">Generate Invoice</button>
+        </form>
+        <div class="invoice" id="invoiceOutput"></div>
+        <button class="print-btn" onclick="printInvoice()">Print Invoice</button>
+        <button class="pdf-btn" onclick="downloadPDF()">Download PDF</button>
+    </div>
+
+    <script>
+        // Function to dynamically add quantity input fields for each selected product
+        document.getElementById('product').addEventListener('change', function() {
+            const selectedOptions = Array.from(this.selectedOptions);
+            const quantitiesContainer = document.getElementById('quantitiesContainer');
+            quantitiesContainer.innerHTML = ''; // Clear previous quantity inputs
+            
+            selectedOptions.forEach(option => {
+                const quantityDiv = document.createElement('div');
+                quantityDiv.className = 'form-group';
+                
+                const label = document.createElement('label');
+                label.innerHTML = Quantity for ${option.text}:;
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '1';
+                input.id = quantity-${option.value};
+                input.dataset.price = option.getAttribute('data-price'); // Store the price in the input field
+
+                quantityDiv.appendChild(label);
+                quantityDiv.appendChild(input);
+                quantitiesContainer.appendChild(quantityDiv);
+            });
+        });
+
+        function generateInvoice() {
+            const dealerName = document.getElementById('dealerName').value;
+            const productSelect = document.getElementById('product');
+            const selectedOptions = Array.from(productSelect.selectedOptions);
+            let totalAmount = 0;
+
+            let invoiceTableRows = '';
+
+            selectedOptions.forEach(option => {
+                const quantityInput = document.getElementById(quantity-${option.value});
+                const quantity = parseInt(quantityInput.value);
+                const price = parseFloat(quantityInput.dataset.price);
+                const amount = price * quantity;
+
+                invoiceTableRows += `
+                    <tr>
+                        <td>${option.text}</td>
+                        <td>${quantity}</td>
+                        <td>₹${amount.toFixed(2)}</td>
+                    </tr>
+                `;
+
+                totalAmount += amount;
+            });
+
+            const gst = totalAmount * 0.18;
+            const totalWithGst = totalAmount + gst;
+
+            // Get current date and time
+            const now = new Date();
+            const date = now.toLocaleDateString();
+            const time = now.toLocaleTimeString();
+
+            const invoiceOutput = `
+                <h2>Invoice</h2>
+                <p><strong>Date:</strong> ${date}</p>
+                <p><strong>Time:</strong> ${time}</p>
+                <table>
+                    <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Amount</th>
+                    </tr>
+                    ${invoiceTableRows}
+                    <tr>
+                        <th colspan="2">Total Amount</th>
+                        <td>₹${totalAmount.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                        <th colspan="2">GST (18%)</th>
+                        <td>₹${gst.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                        <th colspan="2">Total with GST</th>
+                        <td>₹${totalWithGst.toFixed(2)}</td>
+                    </tr>
+                </table>
+                <div class="signature">
+                    <p>Authorized Signature</p>
+                    <p><strong>BANEO'S SNACKS PVT.LTD</strong></p>
+                </div>
+            `;
+
+            document.getElementById('invoiceOutput').innerHTML = invoiceOutput;
+        }
+
+        function printInvoice() {
+            const invoiceContent = document.getElementById('invoiceOutput').innerHTML;
+            const printWindow = window.open('', '', 'height=600,width=800');
+            printWindow.document.write('<html><head><title>Print Invoice</title>');
+            printWindow.document.write('<style>table{width: 100%;border-collapse: collapse;} th, td {border: 1px solid #ddd;padding: 12px;text-align: left;} th {background-color: #f2f2f2;} .signature {text-align: right;}</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write(invoiceContent);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        }
+
+        async function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const invoiceContent = document.getElementById('invoiceOutput').innerHTML;
+            // Adding custom CSS for the PDF layout
+            const css = `
+                <style>
+                    table { width: 100%; border-collapse: collapse; }
+                    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .signature { text-align: right; }
+                </style>`;
+
+            doc.html(css + invoiceContent, {
+                callback: function (doc) {
+                    doc.save('invoice.pdf');
+                },
+                x: 10,
+                y: 10
+            });
+        }
+    </script>
+</body>
+</html>
